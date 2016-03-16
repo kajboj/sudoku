@@ -1,8 +1,32 @@
 require 'set'
 
+def row_coords(row)
+  ([row]*9).zip(9.times.to_a)
+end
+
+def col_coords(col)
+  (9.times.to_a).zip([col]*9)
+end
+
+def block_coords(row, col)
+  base_row = row / 3
+  base_col = col / 3
+
+  [0, 1, 2].repeated_permutation(2).to_a.map do |(row_i, col_i)|
+    [base_row*3 + row_i, base_col*3 + col_i]
+  end
+end
+
+COORDS = (0..8).to_a.repeated_permutation(2)
+
+PEERS_COORDS = COORDS.inject({}) do |h, (row, col)|
+  h[[row, col]] = (row_coords(row) + col_coords(col) + block_coords(row, col)).uniq
+  h
+end
+
 def f(board, row, col)
-  puts pretty(board)
-  puts
+  #puts pretty(board)
+  #puts
 
   if out_of_board?(row, col)
     true
@@ -46,32 +70,11 @@ def out_of_board?(row, col)
 end
 
 def find_moves(board, row, col)
-  Set.new((1..9).to_a) -
-    used_numbers(
-      board,
-      row_coords(row) + col_coords(col) + block_coords(row, col))
-end
-
-def row_coords(row)
-  ([row]*9).zip(9.times.to_a)
-end
-
-def col_coords(col)
-  (9.times.to_a).zip([col]*9)
-end
-
-def block_coords(row, col)
-  base_row = row / 3
-  base_col = col / 3
-
-  [0, 1, 2].repeated_permutation(2).to_a.map do |(row_i, col_i)|
-    [base_row*3 + row_i, base_col*3 + col_i]
-  end
+  (1..9).to_a - used_numbers(board, PEERS_COORDS[[row, col]])
 end
 
 def used_numbers(board, coords)
-  numbers = (coords.map { |(row, col)| board[row][col] }).compact
-  Set.new(numbers)
+  (coords.map { |(row, col)| board[row][col] }).compact
 end
 
 def pretty(board)
@@ -80,24 +83,40 @@ def pretty(board)
   end.join("\n")
 end
 
-def some_board
-  [
-    %w(- - - 7 2 - - - -),
-    %w(3 - 6 - 1 - 2 - -),
-    %w(- 5 - - 6 - - 7 -),
-    %w(- - 2 - - 9 - 4 6),
-    %w(4 - - - - - - - 7),
-    %w(- 8 - - 7 - - - -),
-    %w(- - 5 - - - - 8 -),
-    %w(- 1 - 8 - - - 3 -),
-    %w(- - - - - - 9 - -)
-  ].map do |row|
-    row.map do |v|
-      v == '-' ? nil : v.to_i
+def load_boards(filename)
+  lines = File.read(filename)
+  lines.split(/Grid.*\n/i).map do |grid|
+    grid.split("\n").map do |row|
+      row.split('').map(&:to_i).map do |d|
+        d == 0 ? nil : d
+      end
     end
+  end.reject(&:empty?)
+end
+
+def verify_group(board, coords)
+  numbers = coords.map { |(r, c)| board[r][c] }
+  if numbers.sort != (1..9).to_a
+    raise 'incorrect solution'
   end
 end
 
-board = some_board
+def verify_board(board)
+  (0..8).each do |i|
+    verify_group(board, row_coords(i))
+    verify_group(board, col_coords(i))
+  end
+  [0, 3, 6].repeated_permutation(2).each do |(row, col)|
+    verify_group(board, block_coords(row, col))
+  end
+end
 
-f(board, 0, 0)
+boards = load_boards('sudoku.txt')
+
+boards.each.with_index do |board, i|
+  puts i
+  f(board, 0, 0)
+  puts pretty(board)
+  puts
+  verify_board(board)
+end
