@@ -24,13 +24,13 @@ PEERS_COORDS = COORDS.inject({}) do |h, (row, col)|
   h
 end
 
-def f(board, coords)
+def solve(board, coords)
   if coords.empty?
     true
   else
     row, col = coords.first
 
-    return f(board, coords[1..-1]) if board[row][col]
+    return solve(board, coords[1..-1]) if board[row][col]
 
     moves = find_moves(board, row, col)
 
@@ -39,7 +39,7 @@ def f(board, coords)
     moves.each do |move|
       board[row][col] = move
 
-      if f(board, coords[1..-1])
+      if solve(board, coords[1..-1])
         return true
       else
         board[row][col] = nil
@@ -96,7 +96,7 @@ boards = load_boards('sudoku.txt')
 
 boards.each.with_index do |board, i|
   puts i
-  f(board, COORDS)
+  solve(board, COORDS)
   puts pretty(board)
   puts
   verify_board(board)
