@@ -17,23 +17,20 @@ def block_coords(row, col)
   end
 end
 
-COORDS = (0..8).to_a.repeated_permutation(2)
+COORDS = (0..8).to_a.repeated_permutation(2).to_a
 
 PEERS_COORDS = COORDS.inject({}) do |h, (row, col)|
   h[[row, col]] = (row_coords(row) + col_coords(col) + block_coords(row, col)).uniq
   h
 end
 
-def f(board, row, col)
-  #puts pretty(board)
-  #puts
-
-  if out_of_board?(row, col)
+def f(board, coords)
+  if coords.empty?
     true
   else
-    if board[row][col]
-      return f(board, *next_coords(row, col))
-    end
+    row, col = coords.first
+
+    return f(board, coords[1..-1]) if board[row][col]
 
     moves = find_moves(board, row, col)
 
@@ -42,7 +39,7 @@ def f(board, row, col)
     moves.each do |move|
       board[row][col] = move
 
-      if f(board, *next_coords(row, col))
+      if f(board, coords[1..-1])
         return true
       else
         board[row][col] = nil
@@ -51,22 +48,6 @@ def f(board, row, col)
 
     false
   end
-end
-
-def next_coords(row, col)
-  if col == 8
-    [row + 1, 0]
-  else
-    [row, col + 1]
-  end
-end
-
-def new_board
-  9.times.map { |row| [nil] * 9 }
-end
-
-def out_of_board?(row, col)
-  row == 9
 end
 
 def find_moves(board, row, col)
@@ -115,7 +96,7 @@ boards = load_boards('sudoku.txt')
 
 boards.each.with_index do |board, i|
   puts i
-  f(board, 0, 0)
+  f(board, COORDS)
   puts pretty(board)
   puts
   verify_board(board)
